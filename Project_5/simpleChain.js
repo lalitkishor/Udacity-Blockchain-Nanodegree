@@ -64,6 +64,29 @@ class Blockchain {
       });
     });
   }
+  // add method to address and signature
+ addBlockWithTimeStempMain(newBlock,address,signature,star){
+    let ref = this;
+    this.getBlockHeight().then(function (height) {
+      newBlock.height = height;
+      // UTC timestamp
+      newBlock.time = new Date().getTime().toString().slice(0, -3);
+      newBlock.timeStamp = new Date().getTime();
+      newBlock.address = address;
+      newBlock.signature = signature;
+      newBlock.star = star;
+      if (newBlock.height > 0) {
+        ref.getBlock(height - 1).then(function (response) {
+          newBlock.previousBlockHash = JSON.parse(response).hash;
+          // Block hash with SHA256 using newBlock and converting to a string
+          newBlock.hash = SHA256(JSON.stringify(newBlock)).toString();
+          // Adding block object to chain
+          levelDB.addLevelDBData(height, newBlock);
+          resolve(JSON.stringify(newBlock));
+        });
+      }
+    });
+  }
 
   /* ===== Blockchain Class ==========================
 |  Class with a getBlockHeight for new blockchain 		|
@@ -154,5 +177,8 @@ let blockchain = new Blockchain();
 function addBlockForAPI(body) {
   return blockchain.addBlock(new Block(body.toString()));
 }
+function addBlockWithTimeStemp(body,address,signature,star){
+  blockchain.addBlockWithTimeStempMain(new Block(body.toString()),address,signature,star)
+}
 
-module.exports = { addBlockForAPI};
+module.exports = { addBlockForAPI,addBlockWithTimeStemp};

@@ -19,5 +19,21 @@ let router = function (app) {
             res.status(200).send(JSON.parse(block));
         });
     });
+    // post for method address
+    app.post("/block/address/signature",function(req,res){
+        let blockaddress = req.body.address;
+        let signature = req.body.signature;
+        let star = req.body.star;
+        let body = req.body.body;
+        blockchain.addBlockWithTimeStemp(body.toString(),blockaddress.toString(),signature.toString(),star.toString()).then(function(){
+            res.status(200).send("added");
+        });
+    })
+    app.get("/stars/:address",function(req,res){
+        let address = req.params.address;
+        levelDb.getLevelDBData(address).then(function(data){
+            res.status(200).send(JSON.parse(data));
+        });
+    });
   }
 module.exports = router;
