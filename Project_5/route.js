@@ -1,5 +1,6 @@
-let levelDb = require('./levelSandbox.js');
-let blockchain = require('./simpleChain.js');
+const levelDb = require('./levelSandbox.js');
+const blockchain = require('./simpleChain.js');
+const validation = require('./validation.js');
 
 
 
@@ -7,33 +8,51 @@ let router = function (app) {
     app.get("/", function(req, res) {
       res.status(200).send("This is the default page. welcome to the blockchain restful api.");
     });
-    // app.get("/block/:key",function(req,res){
-    //     let key = req.params.key;
-    //     levelDb.getLevelDBData(key).then(function(data){
-    //         res.status(200).send(JSON.parse(data));
-    //     });
-    // });
-    // app.post("/block",function(req,res){
-    //     let blockBody = req.body.body;
-    //     blockchain.addBlockForAPI(blockBody.toString()).then(function(block){
-    //         res.status(200).send(JSON.parse(block));
-    //     });
-    // });
-    // post for method address
-    app.post("/block/address/signature",function(req,res){
-        let blockaddress = req.body.address;
-        let signature = req.body.signature;
-        let star = req.body.star;
-        let body = req.body.body;
-        blockchain.addBlockWithTimeStemp(body.toString(),blockaddress.toString(),signature.toString(),star.toString()).then(function(){
-            res.status(200).send("added");
-        });
-    })
-    app.get("/stars/:address",function(req,res){
-        let address = req.params.address;
-        levelDb.getLevelDBData(address).then(function(data){
-            res.status(200).send(JSON.parse(data));
+    app.get("/block/:key",function(req,res){
+        let key = req.params.key;
+        levelDb.getDataforStarSearch(key).then(function(data){
+            res.status(200).send(data);
         });
     });
+    app.get("/stars/address::address",function(req,res) {
+        let key = req.params.address;
+        blockchain.getBlockFromAddress(key).then((data)=>{
+            res.status(200).send(data);
+        });
+    });
+    app.get("/stars/hash::hash",function(req,res) {
+        let key = req.params.hash;
+        blockchain.getBlockFromHash(key).then((data)=>{
+            res.status(200).send(data);
+        });
+    });
+    app.post("/block",function(req,res){
+        validation.verifyParameterAndSaveNewData (req.body).then((data)=>{
+            res.json(JSON.parse(data));
+        }).catch((e)=>{
+            console.log(e);
+            res.status(200).send(e);
+        });
+    });
+
+    app.post("/requestValidation",(req,res)=>{
+        const address = req.body.address;
+        validation.varifyAndSaveNewrequest(address).then((data)=>{
+            res.json(JSON.parse(data));
+        }).catch((e)=>{
+            res.status(200).send(e);
+        });
+    });
+
+    app.post('/message-signature/validate',(req,res)=>{
+        const {address,signature} = req.body;
+        validation.verifyMessageSignature(address,signature).then((data)=>{
+            res.status(200).send(data);
+        }).catch((e)=>{
+            res.status(200).send(e);
+        });
+    });
+
+
   }
 module.exports = router;

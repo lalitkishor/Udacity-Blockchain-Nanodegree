@@ -21,7 +21,7 @@ function getLevelDBData(key){
         reject(err);
       }
       else{
-      console.log('Value = ' + value);
+      console.log('Value = ' + JSON.parse(value));
          resolve(value);
       }
     })
@@ -41,21 +41,27 @@ function addDataToLevelDB(value) {
         });
 }
 
+function getDataforStarSearch(key){
+  return new Promise((resolve,reject)=>{
+    db.get(key, function(err, value) {
+      if (err) {
+        reject(err);
+      }
+      else{
+         let body = JSON.parse(value);
+         console.log(body);
+         if (body.body){
+          body.body.star.storyDecoded = new Buffer(body.body.star.story, 'hex').toString();
+         }
+         resolve(body);
+      }
+    })
+  });
+}
 // get db reference
 
 function getDbReference(){
   return db;
 }
 
-/* ===== Testing ==============================================================|
-|  - Self-invoking function to add blocks to chain                             |
-|  - Learn more:                                                               |
-|   https://scottiestech.info/2014/07/01/javascript-fun-looping-with-a-delay/  |
-|                                                                              |
-|  * 100 Milliseconds loop = 36,000 blocks per hour                            |
-|     (13.89 hours for 500,000 blocks)                                         |
-|    Bitcoin blockchain adds 8640 blocks per day                               |
-|     ( new block every 10 minutes )                                           |
-|  ===========================================================================*/
-
-module.exports = { addLevelDBData, getLevelDBData ,getDbReference};
+module.exports = { addLevelDBData, getLevelDBData ,getDbReference,getDataforStarSearch};

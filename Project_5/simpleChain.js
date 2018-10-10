@@ -18,10 +18,6 @@ class Block {
       this.height = 0,
       this.body = data,
       this.time = 0,
-      this.timeStamp =  new Date().getTime(),
-      this.address = "",
-      this.signature = "",
-      this.star = {},
       this.previousBlockHash = ""
   }
 }
@@ -43,27 +39,31 @@ class Blockchain {
     });
   }
 
-  // add method to address and signature
- addBlockWithTimeStempMain(newBlock,address,signature,star){
-    let ref = this;
-    this.getBlockHeight().then(function (height) {
-      newBlock.height = height;
-      // UTC timestamp
-      newBlock.time = new Date().getTime().toString().slice(0, -3);
-      newBlock.timeStamp = new Date().getTime();
-      newBlock.address = address;
-      newBlock.signature = signature;
-      newBlock.star = star;
-      if (newBlock.height > 0) {
-        ref.getBlock(height - 1).then(function (response) {
-          newBlock.previousBlockHash = JSON.parse(response).hash;
-          // Block hash with SHA256 using newBlock and converting to a string
-          newBlock.hash = SHA256(JSON.stringify(newBlock)).toString();
-          // Adding block object to chain
-          levelDB.addLevelDBData(height, newBlock);
-          resolve(JSON.stringify(newBlock));
-        });
-      }
+  /* ===== Blockchain Class ==========================
+  |  Class with a addBlock for new blockchain 		|
+  |  ================================================*/
+
+  addBlock(newBlock) {
+    // Block height
+    return new Promise((resolve, reject) => {
+      let ref = this;
+      this.getBlockHeight().then(function (height) {
+        newBlock.height = height;
+        // UTC timestamp
+        newBlock.time = new Date().getTime().toString().slice(0, -3);
+        if (newBlock.height > 0) {
+          ref.getBlock(height - 1).then(function (response) {
+            newBlock.previousBlockHash = JSON.parse(response).hash;
+            // Block hash with SHA256 using newBlock and converting to a string
+            newBlock.hash = SHA256(JSON.stringify(newBlock)).toString();
+            // Adding block object to chain
+
+            levelDB.addLevelDBData(height, newBlock);
+            delete newBlock.body.star.storyDecoded;
+            resolve(JSON.stringify(newBlock));
+          });
+        }
+      });
     });
   }
 
@@ -75,7 +75,10 @@ class Blockchain {
     return new Promise((resolve, reject) => {
       let x = 0;
       chaindb.createReadStream().on('data', function (data) {
-        x++;
+        console.log("data",data);
+        if(!isNaN(data.key)){
+          x++;
+        }
       }).on('error', function (error) {
         return console.log('something not correct in height', err0r)
       }).on('close', function () {
@@ -92,12 +95,118 @@ class Blockchain {
   getBlock(blockHeight) {
     return levelDB.getLevelDBData(blockHeight);
   }
+
+  /* ===== Blockchain Class ==========================
+|  Class with a validateBlock for new blockchain 		|
+|  ================================================*/
+
+  validateBlock(blockHeight) {
+    // get block object
+    this.getBlock(blockHeight).then(function (response) {
+      let block = JSON.parse(response);
+      // get block hash
+      let blockHash = JSON.stringify(block.hash).toString();
+      block.hash = '';
+      let validBlockHash = SHA256(JSON.stringify(block)).toString();
+
+      // Compare
+      if (blockHash === validBlockHash) {
+        console.log('Block #' + blockHeight + ' validated');
+        return true;
+      } else {
+        console.log('Block #' + blockHeight + ' invalid hash:\n' + blockHash + '<>' + validBlockHash);
+        return false;
+      }
+    });
+  }
+
+  /*============================getBlockfrom address ======================
+  ====*/
+
+  searchFromAddress(address){
+    return new Promise((resolve, reject) => {
+      let x = [];
+      chaindb.createReadStream().on('data', function (data) {
+        let result = JSON.parse(data.value);
+        
+        if (result.body && result.body.address == address.toString()){
+          result.body.star.storyDecoded = new Buffer(result.body.star.story, 'hex').toString();
+          x.push(result);
+        }
+      }).on('error', function (error) {
+        return console.log('something not correct in search address', error)
+      }).on('close', function () {
+        resolve(x)
+      });
+    })
+  }
+
+  /*================================ search fron hash ===================
+*/
+ searchFromHash(hash){
+  return new Promise((resolve, reject) => {
+
+    chaindb.createReadStream().on('data', function (data) {
+      let result = JSON.parse(data.value);
+      
+      if (result.body && result.hash == hash.toString()){
+        result.body.star.storyDecoded = new Buffer(result.body.star.story, 'hex').toString();
+        resolve(result);
+      }
+    }).on('error', function (error) {
+      return console.log('something not correct in search address', error)
+    }).on('close', function () {
+      resolve("not found")
+    });
+  })
+ }
+
+
+  /* ===== Blockchain Class ==========================
+ |  Class with a validateChain for new blockchain 		|
+ |  ================================================*/
+
+  validateChain() {
+    let ref = this;
+    this.getBlockHeight().then(function (h) {
+      let errorLog = [];
+      for (var i = 0; i < h - 2; i++) {
+        // validate block
+        if (!ref.validateBlock(i)) errorLog.push(i);
+        // compare blocks hash link
+        ref.getBlock(i).then(function (data) {
+          let blockHash = JSON.parse(data).hash;
+          ref.getBlock(i + 1).then(function (data) {
+            let previousHash = JSON.parse(data).previousBlockHash;
+            if (blockHash !== previousHash) {
+              errorLog.push(i);
+            }
+            // check
+            if (errorLog.length > 0) {
+              console.log('Block errors = ' + errorLog.length);
+              console.log('Blocks: ' + errorLog);
+            } else {
+              console.log('No errors detected');
+            }
+          });
+        });
+
+      }
+
+    });
+  }
 }
 
 let blockchain = new Blockchain();
-
-function addBlockWithTimeStemp(body,address,signature,star){
-  blockchain.addBlockWithTimeStempMain(new Block(body.toString()),address,signature,star)
+function addBlockInStarChain(body) {
+  return blockchain.addBlock(new Block(body));
+}
+function getBlockFromAddress(address){
+  console.log("Im here");
+  return blockchain.searchFromAddress(address);
+}
+function getBlockFromHash(hash){
+  return blockchain.searchFromHash(hash);
 }
 
-module.exports = {addBlockWithTimeStemp};
+module.exports = { addBlockInStarChain,getBlockFromAddress,getBlockFromHash};
