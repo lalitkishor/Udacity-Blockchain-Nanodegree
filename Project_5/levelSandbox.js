@@ -60,8 +60,18 @@ function getDataforStarSearch(key){
 }
 // get db reference
 
+function deleteData(key){
+  return new Promise((resolve,reject)=>{
+    db.del(key.toString(), function (err) {
+      if (err){
+        return resolve(err);
+      }
+      return reject("Something Wrong");
+    });
+  })
+}
 function getDbReference(){
   return db;
 }
 
-module.exports = { addLevelDBData, getLevelDBData ,getDbReference,getDataforStarSearch};
+module.exports = { addLevelDBData, getLevelDBData ,getDbReference,getDataforStarSearch,deleteData};

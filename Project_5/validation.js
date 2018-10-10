@@ -1,9 +1,7 @@
 const coinMessage = require('bitcoinjs-message');
 const levelDb = require('./levelSandbox.js');
 const blockchain = require('./simpleChain.js');
-const level = require('level');
-const chainDB = './chaindata';
-const db = level(chainDB);
+
 
 verifyParameterAndSaveNewData = (body)=>{
     return new Promise((reject,resolve)=>{
@@ -19,12 +17,14 @@ verifyParameterAndSaveNewData = (body)=>{
                 body = {address,star}
                 levelDb.getLevelDBData(address).then((d)=>{
                     let b = JSON.parse(d);
-                    if (b.messageSignature == "invalid"){
+                    if (b.messageSignature == "valid"){
                         blockchain.addBlockInStarChain(body).then(function(block){
                             // once a user add block del the address
-                            db.del(address.toString(), function (err) {
-                                return reject(err);
-                              });
+                            levelDb.deleteData(address).then((data)=>{
+                                return resolve(data);
+                            }).catch((e)=>{
+                                return reject(e);
+                            });
                             return resolve(block);
                         }).catch((e)=>{
                             reject(e);
