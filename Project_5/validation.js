@@ -17,7 +17,7 @@ verifyParameterAndSaveNewData = (body)=>{
                 body = {address,star}
                 levelDb.getLevelDBData(address).then((d)=>{
                     let b = JSON.parse(d);
-                    if (b.messageSignature == "valid"){
+                     if (b.messageSignature == "valid"){
                         blockchain.addBlockInStarChain(body).then(function(block){
                             // once a user add block del the address
                             levelDb.deleteData(address).then((data)=>{
@@ -25,7 +25,7 @@ verifyParameterAndSaveNewData = (body)=>{
                             }).catch((e)=>{
                                 return reject(e);
                             });
-                            return resolve(block);
+                            return resolve(JSON.parse(block));
                         }).catch((e)=>{
                             reject(e);
                         });

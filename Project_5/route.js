@@ -11,24 +11,24 @@ let router = function (app) {
     app.get("/block/:key",function(req,res){
         let key = req.params.key;
         levelDb.getDataforStarSearch(key).then(function(data){
-            res.status(200).send(data);
+            res.json(data);
         });
     });
     app.get("/stars/address::address",function(req,res) {
         let key = req.params.address;
         blockchain.getBlockFromAddress(key).then((data)=>{
-            res.status(200).send(data);
+            res.json(data);
         });
     });
     app.get("/stars/hash::hash",function(req,res) {
         let key = req.params.hash;
         blockchain.getBlockFromHash(key).then((data)=>{
-            res.status(200).send(data);
+            res.json(data);
         });
     });
     app.post("/block",function(req,res){
         validation.verifyParameterAndSaveNewData (req.body).then((data)=>{
-            res.json(JSON.parse(data));
+            res.json(data);
         }).catch((e)=>{
             console.log(e);
             res.status(200).send(e);
@@ -47,7 +47,7 @@ let router = function (app) {
     app.post('/message-signature/validate',(req,res)=>{
         const {address,signature} = req.body;
         validation.verifyMessageSignature(address,signature).then((data)=>{
-            res.status(200).send(data);
+            res.json(data);
         }).catch((e)=>{
             res.status(200).send(e);
         });
